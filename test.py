@@ -1,6 +1,7 @@
 # inputs
-a = [[1, 2], [1, 3]]
-b = [[2, 3, 4], [5, 3, 6]]
+a = [[1., 2.], [2., 7.], [2., 5.], [8., 4.], [1., 9.]] # 5 x 2
+b = [[2., 3., 4.], [5, 3, 6]] # 2 x 3
+f = [[1., 2., 8., 4., 6], [2., 6., 8., 5., 6.], [7., 3., 6., 7., 9.], [2., 5., 8., 5., 7.]] # 4 x 5
 
 
 # Lil grad path
@@ -10,10 +11,12 @@ b1 = Tensor(b)
 m1 = Tensor(2.)
 
 c1 = a1 @ b1 + m1
-n1 = (c1 * 0.5)
-d1 = n1.mean()
+d1 = f @ c1
+n1 = (d1 * 0.5)
 
-d1.backward()
+out1 = n1.mean()
+
+out1.backward()
 
 # torch verification path
 import torch
@@ -27,10 +30,12 @@ a2.requires_grad = True
 b2.requires_grad = True
 
 c2 = a2 @ b2 + m2
-n2 = (c2 * 0.5)
-d2 = n2.mean()
+d2 = torch.tensor(f) @ c2
+n2 = (d2 * 0.5)
 
-d2.backward()
+out2 = n2.mean()
+
+out2.backward()
 
 print(((a2.grad - a1.grad).max() < 0.0001).item())
 print(((b2.grad - b1.grad).max() < 0.0001).item())

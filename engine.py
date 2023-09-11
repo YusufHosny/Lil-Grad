@@ -132,13 +132,14 @@ class Tensor:
         return out
     
     def __rmatmul__(self, other):
-        assert isinstance(other, (np.array, Tensor)), "only supporting matrix multiplication with numpy arrays"
+        assert isinstance(other, (np.ndarray, Tensor, list)), "only supporting matrix multiplication with numpy arrays, Tensors, and lists"
         other = other if isinstance(other, Tensor) else Tensor(other)
 
-        out = Tensor((self.data.T @ other.T).T, (self, other), 'matmul')
+        out = Tensor(((self.T @ other.T).T), (self, other), 'matmul')
         
         def _backward():
-            self.grad += other.grad 
+            self.grad += other.T @ out.grad
+            other.grad += out.grad @ self.T
         out._backward = _backward
 
         return out
