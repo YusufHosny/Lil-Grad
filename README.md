@@ -9,4 +9,6 @@ Currently Lil grad is only able to process the gradients for scalars and 1 dimen
 ## Binary Point Classification
 
 Similar to Micrograd's test demo, Lil grad is also capable of classifying points with a MLP approach. in the case of Lil grad, this is done via matrix multiplications of tensors instead of MLP, Layer, and Neuron objects. Similar results were achieved with this approach.
+
+
 ![Results of classification](demo_mlp.png)
