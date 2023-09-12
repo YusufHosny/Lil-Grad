@@ -5,4 +5,3 @@ Lil grad is a simple and small autograd implementation and an extension on Andre
 ## broadcasting
 
 Currently Lil grad is only able to process the gradients for scalars/single element lists which are broadcasted. Other broadcasted shapes will raise an error.
-gi
