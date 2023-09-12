@@ -49,6 +49,14 @@ class Tensor:
             elif(other.shape == (1,)):
                 self.grad += 1.0 * out.grad
                 other.grad += (1.0 * out.grad).sum()
+            elif(len(self.shape) == 1):
+                self.grad += (1.0 * out.grad).sum(0)
+                other.grad += 1.0 * out.grad
+            elif(len(other.shape) == 1):
+                self.grad += 1.0 * out.grad
+                other.grad += (1.0 * out.grad).sum(0)
+            else:
+                raise Exception("Broadcast Error: Only broadcasting from a scalar or single element list is allowed.")
 
 
         out._backward = _backward
@@ -58,6 +66,7 @@ class Tensor:
     # addition of other + self
     def __radd__(self, other):
         return self + other
+    
 
     def __mul__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
@@ -73,6 +82,8 @@ class Tensor:
             elif(other.shape == (1,)):
                 self.grad += other.data * out.grad
                 other.grad += (self.data * out.grad).sum()
+            else:
+                raise Exception("Broadcast Error: Only broadcasting from a scalar or single element list is allowed.")
 
         out._backward = _backward
 
@@ -127,6 +138,7 @@ class Tensor:
             self.grad += out.grad @ other.T
             other.grad += self.T @ out.grad
 
+
         out._backward = _backward
         
         return out
@@ -168,7 +180,12 @@ class Tensor:
     
     def relu(self):
         x = self.data
-        r = x if x > 0 else 0
+        r = np.zeros_like(x.reshape(-1))
+        for i, xi in enumerate(x.reshape(-1)):
+            r[i] = xi if xi > 0 else 0
+
+        r = r.reshape(x.shape)
+
         out = Tensor(r, (self, ), 'ReLU')
 
         def _backward():
@@ -178,7 +195,78 @@ class Tensor:
 
         return out
     
+    def __len__(self):
+        return len(self.data)
     
+    def sum(self):
+        out = Tensor(self.data.sum(), (self,), 'summation')
+
+        def _backward():
+            self.grad += 1.0 * out.grad
+        out._backward = _backward
+
+        return out
+
+    @staticmethod
+    def ones(shapelike):
+        return Tensor(np.ones(shapelike))
+    
+    @staticmethod
+    def ones_like(like):
+        return Tensor(np.ones_like(like))
+    
+    @staticmethod
+    def zeros(shapelike):
+        return Tensor(np.zeros(shapelike))
+    
+    @staticmethod
+    def zeros_like(like):
+        return Tensor(np.zeros_like(like))
+    
+    @staticmethod
+    def randn(shapelike):
+        return Tensor(np.random.default_rng().standard_normal(size=shapelike))
+    
+    @staticmethod
+    def rand(shapelike):
+        return Tensor(np.random.default_rng().uniform(low=-1, size=shapelike))
+    
+    def zero_grad(self):
+        self.grad = np.zeros_like(self.data)
+
+    def __getitem__(self, i):
+        out = Tensor(self.data[i], (self,), 'indexing')
+        
+        def _backward():
+            self.grad[i] += 1.0 * out.grad
+        out._backward = _backward
+
+        return out
+
+    def __iter__(self):
+        self.ix = 0
+        return self
+    
+    def __next__(self):
+        if self.ix == len(self.data):
+            raise StopIteration
+        else:          
+            out = self[self.ix]
+            self.ix += 1        
+            return out
+        
+    def nelement(self):
+        return self.data.size
+    
+    def flatten(self):
+        out = Tensor(self.data.reshape(-1), (self), 'flatten')
+
+        def _backward():
+            self.grad = out.grad.reshape(-1)
+        out._backward = _backward
+
+        return out
+
     def backward(self):
         topo = []
         visited = set()
@@ -194,5 +282,3 @@ class Tensor:
         self.grad = np.array([1])
         for node in reversed(topo):
             node._backward()
-
-
